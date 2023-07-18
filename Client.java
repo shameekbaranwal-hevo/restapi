@@ -21,14 +21,15 @@ public class Client {
   }
 
   private void home() {
-    System.out.println("-----HOME-----");
+    System.out.println("\n---------HOME---------");
     System.out.println("You have the following options:\n"
                        + "1. Create a new User.\n"
                        + "2. View Users.\n"
                        + "3. Update User details.\n"
                        + "4. Delete a User.\n"
-                       + "Select any one and press Enter.");
-    int option = getUserInput(1, 4);
+                       + "5. Close client.\n"
+                       + "Select any one and press Enter:\n");
+    int option = getUserInput(1, 5);
     switch (option) {
     case 1: {
       create();
@@ -46,29 +47,58 @@ public class Client {
       delete();
       break;
     }
-
     default: {
-      System.out.println("not possible to reach here");
+      System.out.println("--------closing client---------");
+      return;
     }
     }
+
+    home();
   }
 
-  private void create() {}
+  private void create() {
+    // first_name, last_name, id, role
+    Request req = new Request(RequestType.POST);
+    req.user = new User();
+    System.out.println("\n-------CREATE-------");
+    System.out.println("\nEnter first name of the new user: ");
+    req.user.first_name = sc.nextLine();
+    System.out.println("\nEnter last name of the new user: ");
+    req.user.last_name = sc.nextLine();
+    System.out.println("\nEnter a (unique) id for the new user: ");
+    req.user.id = getUserInput(1, Integer.MAX_VALUE);
+    req.id = req.user.id;
+    System.out.println("\nSelect a role for the new user: ");
+    for (Role role : Role.values())
+      System.out.println(role.ordinal() + 1 + ": " + role);
+    int role_selection = getUserInput(1, Role.values().length);
+    req.user.role = Role.values()[role_selection];
+
+    System.out.println();
+    System.out.println("\nInserting user: " + req.user +
+                       " into the database\n");
+    Response res = server.POST(req);
+    System.out.println(res);
+  }
+
   private void view() {
-    System.out.println("---VIEW---");
+    System.out.println("\n-------VIEW-------");
 
     Request req = new Request(RequestType.GET);
 
     // keep taking filter preferences from user until they enter 7
     while (true) {
-      System.out.println("You have the following options:\n"
-                         + "1. Filter by ID.\n"
-                         + "2. Exclude Roles.\n"
-                         + "3. First Name must contain.\n"
-                         + "4. Last name must contain.\n"
-                         + "5. Set maximum number of results.\n"
-                         + "6. Set page number.\n"
-                         + "7. Continue.\n");
+      System.out.println(
+          "\nSelect any filters for your search, or use 7 to continue with selected filters.\n"
+          + "You have the following options:\n"
+          + "1. Filter by ID.\n"
+          + "2. Exclude Roles.\n"
+          + "3. First Name must contain.\n"
+          + "4. Last name must contain.\n"
+          + "5. Set maximum number of results.\n"
+          + "6. Set page number.\n"
+          + "7. Continue.\n");
+
       int option = getUserInput(1, 7);
       if (option == 7)
         break;
@@ -80,20 +110,7 @@ public class Client {
       }
       case 2: {
         // update req.excludeRoles
-        System.out.println("The following roles are available:\n"
-                           + "0: Continue");
-        // +1 to maintain the 1-based indexing used for options
-        for (Role role : Role.values())
-          System.out.println((role.ordinal() + 1) + ": " + role);
-
-        while (true) {
-          System.out.println("Select any role to exclude, and press Enter.");
-          int exclude = getUserInput(0, Role.values().length - 1);
-          if (exclude == 0)
-            break;
-          req.excludeRoles.add(Role.values()[exclude - 1]);
-        }
-
+        handleRoleExcludeSelection(req);
         break;
       }
       case 3: {
@@ -121,9 +138,29 @@ public class Client {
 
     Response res = server.GET(req);
     System.out.println(res.body);
+    // add option to see next page or previous page
   }
+
   private void update() {}
   private void delete() {}
+
+  private void handleRoleExcludeSelection(Request req) {
+    System.out.println("\nThe following roles are available:\n");
+
+    // +1 to maintain the 1-based indexing used for options
+    for (Role role : Role.values())
+      System.out.println((role.ordinal() + 1) + ": " + role);
+    System.out.println(Role.values().length + 1 + ": Continue");
+
+    System.out.println("\nSelect a role to exclude, and press Enter:\n");
+    while (true) {
+      int exclude = getUserInput(1, Role.values().length + 1);
+      if (exclude == Role.values().length + 1)
+        break;
+      req.excludeRoles.add(Role.values()[exclude - 1]);
+      System.out.println("You can select more roles, or 6 to continue.");
+    }
+  }
 
   private int getUserInput(int lower, int upper) {
     int option = sc.nextInt();
