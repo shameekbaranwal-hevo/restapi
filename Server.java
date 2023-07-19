@@ -17,9 +17,9 @@ class Request {
   String last_name_includes;  // for GET, for filtering based on last name
 
   Request(RequestType type) {
-    this.count = 0;
+    this.count = 5;
     this.type = type;
-    this.page = 0;
+    this.page = 1;
     this.id = -1;
     this.user = null;
     this.excludeRoles = new ArrayList<>();
@@ -70,14 +70,22 @@ class Server {
     }
 
     // user requested all users some filter
-    res.body = usersDAO.SELECT(
-        user
+    List<User> resultList = usersDAO.SELECT(
+        (User user)
         // role doesnt match any excluded roles (empty list by default)
         -> (request.excludeRoles.indexOf(user.role) == -1 &&
             // first name contains (default)
-            user.first_name.contains(request.first_name_includes) &&
+            user.first_name.toLowerCase().contains(
+                request.first_name_includes.toLowerCase()) &&
             // last name contains the (default)
-            user.last_name.contains(request.last_name_includes)));
+            user.last_name.toLowerCase().contains(
+                request.last_name_includes.toLowerCase())));
+
+    // pagination logic
+    // page number p (1-indexed), count c
+    // keep indices [(p-1)*c,(p*c)-1)
+    res.body = resultList.subList((request.page - 1) * request.count,
+                                  request.page * request.count);
 
     res.statusCode = 200; // ok
     res.isSuccessful = true;
@@ -103,7 +111,7 @@ class Server {
 
   public Response DELETE(Request request) {
     Response res = new Response();
-    res.isSuccessful = usersDAO.DELETE(request.user.id);
+    res.isSuccessful = usersDAO.DELETE(request.id);
     res.statusCode =
         res.isSuccessful ? 200 : 404; // ok or not found (unknown id)
     return res;

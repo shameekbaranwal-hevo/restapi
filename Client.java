@@ -1,8 +1,5 @@
 import java.util.Scanner;
 
-/**
- * Client
- */
 public class Client {
   Server server;
   Scanner sc;
@@ -29,7 +26,7 @@ public class Client {
                        + "4. Delete a User.\n"
                        + "5. Close client.\n"
                        + "Select any one and press Enter:\n");
-    int option = getUserInput(1, 5);
+    int option = getRangedInput(1, 5);
     switch (option) {
     case 1: {
       create();
@@ -66,17 +63,15 @@ public class Client {
     System.out.println("\nEnter last name of the new user: ");
     req.user.last_name = sc.nextLine();
     System.out.println("\nEnter a (unique) id for the new user: ");
-    req.user.id = getUserInput(1, Integer.MAX_VALUE);
+    req.user.id = getRangedInput(1, Integer.MAX_VALUE);
     req.id = req.user.id;
     System.out.println("\nSelect a role for the new user: ");
     for (Role role : Role.values())
       System.out.println(role.ordinal() + 1 + ": " + role);
-    int role_selection = getUserInput(1, Role.values().length);
-    req.user.role = Role.values()[role_selection];
+    int role_selection = getRangedInput(1, Role.values().length);
+    req.user.role = Role.values()[role_selection - 1];
 
-    System.out.println();
-    System.out.println("\nInserting user: " + req.user +
-                       " into the database\n");
+    System.out.println("\nInserting user: " + req.user + "into the database\n");
     Response res = server.POST(req);
     System.out.println(res);
   }
@@ -99,13 +94,13 @@ public class Client {
           + "6. Set page number.\n"
           + "7. Continue.\n");
 
-      int option = getUserInput(1, 7);
+      int option = getRangedInput(1, 7);
       if (option == 7)
         break;
 
       switch (option) {
       case 1: {
-        req.id = getUserInput(0, Integer.MAX_VALUE);
+        req.id = getRangedInput(0, Integer.MAX_VALUE);
         break;
       }
       case 2: {
@@ -125,24 +120,113 @@ public class Client {
       }
       case 5: {
         // update req.count
-        req.count = getUserInput(1, Integer.MAX_VALUE);
+        req.count = getRangedInput(1, Integer.MAX_VALUE);
         break;
       }
       case 6: {
         // update req.page
-        req.page = getUserInput(1, Integer.MAX_VALUE);
+        req.page = getRangedInput(1, Integer.MAX_VALUE);
         break;
       }
+      default:
+        assert (0 == 2); // not reachable
       }
     }
 
     Response res = server.GET(req);
     System.out.println(res.body);
-    // add option to see next page or previous page
+    System.out.println("\tPAGE:" + req.page + "\t\tMAX COUNT:" + req.count);
+
+    // TODO add option to see next page or previous page
   }
 
-  private void update() {}
-  private void delete() {}
+  private void update() {
+    System.out.println("\n-------UPDATE-------\n");
+    System.out.println("Enter ID of the user you want to update:");
+    int id = getRangedInput(0, Integer.MAX_VALUE);
+
+    // show the current state of the user
+    Request getReq = new Request(RequestType.GET);
+    getReq.id = id;
+    Response getRes = server.GET(getReq);
+    if (!getRes.isSuccessful) {
+      System.out.println(getRes);
+      System.out.println("No user found with the provided ID.\n");
+      return;
+    }
+
+    Request updateReq = new Request(RequestType.PUT);
+    updateReq.user = getRes.body.get(0);
+
+    while (true) {
+      System.out.println("Current Status of User " + id + ":" + updateReq.user);
+
+      System.out.println(
+          "Select a field to update, or enter 5 if you're done:\n"
+          + "1. First Name:\n"
+          + "2. Last Name:\n"
+          + "3. Role:\n"
+          + "4: Continue");
+
+      int option = getRangedInput(1, 4);
+      if (option >= 4)
+        break;
+
+      switch (option) {
+      case 1: {
+        System.out.println("Enter updated first name:");
+        updateReq.user.first_name = sc.nextLine();
+        break;
+      }
+
+      case 2: {
+        System.out.println("Enter updated last name:");
+        updateReq.user.last_name = sc.nextLine();
+        break;
+      }
+
+      case 3: {
+        System.out.println("Select a role among the following:");
+        for (Role role : Role.values())
+          System.out.println(role.ordinal() + 1 + ": " + role);
+        int roleSelection = getRangedInput(1, Role.values().length);
+        updateReq.user.role = Role.values()[roleSelection - 1];
+        break;
+      }
+
+      default:
+        assert (0 == 1); // not reachable
+      }
+    }
+
+    Response updateRes = server.PUT(updateReq);
+    System.out.println(updateRes);
+    if (!updateRes.isSuccessful)
+      System.out.println("Couldn't update information of selected User.");
+  }
+
+  private void delete() {
+    System.out.println("\n-------DELETE-------\n");
+    System.out.println("Enter ID of the user you want to delete:");
+    int id = getRangedInput(0, Integer.MAX_VALUE);
+
+    // show the current state of the user
+    Request getReq = new Request(RequestType.GET);
+    getReq.id = id;
+    Response getRes = server.GET(getReq);
+    if (!getRes.isSuccessful) {
+      System.out.println(getRes);
+      System.out.println("No user found with the provided ID.\n");
+      return;
+    }
+
+    Request deleteReq = new Request(RequestType.PUT);
+    deleteReq.id = getRes.body.get(0).id;
+    Response deleteRes = server.DELETE(deleteReq);
+    System.out.println(deleteRes);
+    if (!deleteRes.isSuccessful)
+      System.out.println("Couldn't delete selected User.");
+  }
 
   private void handleRoleExcludeSelection(Request req) {
     System.out.println("\nThe following roles are available:\n");
@@ -154,7 +238,7 @@ public class Client {
 
     System.out.println("\nSelect a role to exclude, and press Enter:\n");
     while (true) {
-      int exclude = getUserInput(1, Role.values().length + 1);
+      int exclude = getRangedInput(1, Role.values().length + 1);
       if (exclude == Role.values().length + 1)
         break;
       req.excludeRoles.add(Role.values()[exclude - 1]);
@@ -162,7 +246,7 @@ public class Client {
     }
   }
 
-  private int getUserInput(int lower, int upper) {
+  private int getRangedInput(int lower, int upper) {
     int option = sc.nextInt();
     while (option < lower || option > upper) {
       System.out.println("Invalid option, try again.");
