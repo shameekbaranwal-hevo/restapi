@@ -44,7 +44,7 @@ class Response {
 class Server {
   private Database usersDAO;
 
-  Server() { this.usersDAO = new Database(); }
+  Server(Database dao) { this.usersDAO = dao; }
 
   public Response GET(Request request) {
     Response res = new Response();

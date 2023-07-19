@@ -12,11 +12,11 @@ public class Database {
 
   public Map<Integer, User> getUsers() { return users; }
 
-  Database() {
+  Database(String DB_ADDRESS) {
     users = new TreeMap<>();
     // users = new HashMap<>();
 
-    try (BufferedReader br = new BufferedReader(new FileReader("data.csv"))) {
+    try (BufferedReader br = new BufferedReader(new FileReader(DB_ADDRESS))) {
       String line;
       while ((line = br.readLine()) != null) {
         String[] values = line.split(", ");
